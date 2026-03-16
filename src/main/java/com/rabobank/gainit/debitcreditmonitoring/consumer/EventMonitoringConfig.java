@@ -14,17 +14,44 @@ import java.util.function.Consumer;
 public class EventMonitoringConfig {
 
     @Bean
-    public Consumer<Message<String>> monitoring(MonitoringEventProcessor processor) {
-        return processor;
+    public Consumer<Message<String>> monitoring(MonitoringEventHandler handler) {
+        return message -> {
+            log.info("Received monitoring event from debit-credit-monitoring: {}", message.getPayload());
+            log.info("Monitoring event headers - Partition Key: {}, Sequence Number: {}, Offset: {}, Enqueued Time: {}",
+                     message.getHeaders().get(AzureHeaders.PARTITION_KEY),
+                     message.getHeaders().get("x-opt-sequence-number"),
+                     message.getHeaders().get("x-opt-offset"),
+                     message.getHeaders().get("x-opt-enqueued-time"));
+            Checkpointer checkpointer = (Checkpointer) message.getHeaders().get(AzureHeaders.CHECKPOINTER);
+            handler.process(message.getPayload(), checkpointer);
+        };
     }
 
     @Bean
-    public Consumer<Message<String>> monitorCredit(CreditEventProcessor processor) {
-        return processor;
+    public Consumer<Message<String>> monitorCredit(CreditEventHandler handler) {
+        return message -> {
+            log.info("Received credit process event: {}", message.getPayload());
+            log.info("Credit event headers - Partition Key: {}, Sequence Number: {}, Offset: {}, Enqueued Time: {}",
+                     message.getHeaders().get(AzureHeaders.PARTITION_KEY),
+                     message.getHeaders().get("x-opt-sequence-number"),
+                     message.getHeaders().get("x-opt-offset"),
+                     message.getHeaders().get("x-opt-enqueued-time"));
+            Checkpointer checkpointer = (Checkpointer) message.getHeaders().get(AzureHeaders.CHECKPOINTER);
+            handler.process(message.getPayload(), checkpointer);
+        };
     }
 
     @Bean
-    public Consumer<Message<String>> monitorDebit(DebitEventProcessor processor) {
-        return processor;
+    public Consumer<Message<String>> monitorDebit(DebitEventHandler handler) {
+        return message -> {
+            log.info("Received debit process event: {}", message.getPayload());
+            log.info("Debit event headers - Partition Key: {}, Sequence Number: {}, Offset: {}, Enqueued Time: {}",
+                     message.getHeaders().get(AzureHeaders.PARTITION_KEY),
+                     message.getHeaders().get("x-opt-sequence-number"),
+                     message.getHeaders().get("x-opt-offset"),
+                     message.getHeaders().get("x-opt-enqueued-time"));
+            Checkpointer checkpointer = (Checkpointer) message.getHeaders().get(AzureHeaders.CHECKPOINTER);
+            handler.process(message.getPayload(), checkpointer);
+        };
     }
 }
