@@ -11,10 +11,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class EventController {
 
     private final StreamBridge streamBridge;
+    private final EventHubProducer creditEventProducer;
+    private final EventHubProducer debitEventProducer;
 
     @PostMapping("/send-event")
     public String sendEvent(@RequestBody String event) {
         streamBridge.send("monitorEvents-in-0", event);
         return "Event sent: " + event;
+    }
+
+    @PostMapping("/send-credit-event")
+    public String sendCreditEvent(@RequestBody String event) {
+        creditEventProducer.send(event);
+        return "Credit event sent: " + event;
+    }
+
+    @PostMapping("/send-debit-event")
+    public String sendDebitEvent(@RequestBody String event) {
+        debitEventProducer.send(event);
+        return "Debit event sent: " + event;
     }
 }
