@@ -5,19 +5,40 @@ spring:
         processor:
           checkpoint-store:
             account-name: sadevbrgainitcadebcre # Storage Account
-            account-key:
-        connection-string:
+            account-key: ${AZURE_STORAGE_ACCOUNT_KEY}
+            container-name: checkpoints
+        connection-string: ${AZURE_EVENTHUB_CONNECTION_STRING}
     stream:
       function:
-        definition: monitorEvents
+        definition: monitorEvents,monitorCredit,monitorDebit
       bindings:
         monitorEvents-in-0:
           destination: debit-credit-events
+          group: monitoring-group
+        monitorCredit-in-0:
+          destination: debit-credit-monitoring-credit-process
+          group: monitoring-group
+        monitorDebit-in-0:
+          destination: debit-credit-monitoring-debit-process
           group: monitoring-group
       eventhubs:
         bindings:
           monitorEvents-in-0:
             consumer:
+              checkpoint:
+                mode: MANUAL
+              checkpoint-store:
+                container-name: checkpoints
+          monitorCredit-in-0:
+            consumer:
+              checkpoint:
+                mode: MANUAL
+              checkpoint-store:
+                container-name: checkpoints
+          monitorDebit-in-0:
+            consumer:
+              checkpoint:
+                mode: MANUAL
               checkpoint-store:
                 container-name: checkpoints
 
