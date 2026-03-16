@@ -13,13 +13,15 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class DebitEventProducer {
 
-    private static final String EVENT_HUB_NAME = "debit-credit-monitoring-debit-process";
-
+    private final String eventHubName;
     private final EventHubProducerClient producer;
 
-    public DebitEventProducer(@Value("${spring.cloud.azure.eventhubs.connection-string}") String connectionString) {
+    public DebitEventProducer(
+            @Value("${spring.cloud.azure.eventhubs.connection-string}") String connectionString,
+            @Value("${spring.cloud.stream.bindings.monitorDebit-in-0.destination}") String eventHubName) {
+        this.eventHubName = eventHubName;
         this.producer = new EventHubClientBuilder()
-                .connectionString(connectionString, EVENT_HUB_NAME)
+                .connectionString(connectionString, this.eventHubName)
                 .buildProducerClient();
     }
 
@@ -28,7 +30,7 @@ public class DebitEventProducer {
         try {
             batch.tryAdd(new EventData(payload));
             producer.send(batch);
-            log.info("Sent debit event to {}: {}", EVENT_HUB_NAME, payload);
+            log.info("Sent debit event to {}: {}", eventHubName, payload);
         } catch (Exception e) {
             log.error("Failed to send debit event", e);
         }
