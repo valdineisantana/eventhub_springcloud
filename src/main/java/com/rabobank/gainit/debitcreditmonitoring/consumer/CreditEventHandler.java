@@ -8,8 +8,17 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CreditEventHandler {
 
+    private final SequentialProcessingController sequentialController;
+
+    public CreditEventHandler(SequentialProcessingController sequentialController) {
+        this.sequentialController = sequentialController;
+    }
+
     public void process(String payload, Checkpointer checkpointer) {
         log.info("Processing credit process event: {}", payload);
+
+        // Notify that credit queue has activity - this will pause debit queue if needed
+        sequentialController.onCreditQueueMessage();
 
         // Business logic here - binding control ensures this only runs when appropriate
         // Add business logic here, e.g., parse payload, validate credit rules, etc.

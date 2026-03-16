@@ -33,16 +33,22 @@ public class EventController {
         return "Debit event sent: " + event;
     }
 
-    @PostMapping("/processing/force-resume")
-    public String forceResumeSecondaryQueues() {
-        sequentialController.forceResumeSecondaryQueues();
-        return "Secondary queues manually resumed for processing.";
+    @PostMapping("/processing/force-resume-all")
+    public String forceResumeAllSecondaryQueues() {
+        sequentialController.forceResumeAllSecondaryQueues();
+        return "All secondary queues manually resumed for processing.";
     }
 
-    @PostMapping("/processing/force-pause")
-    public String forcePauseSecondaryQueues() {
-        sequentialController.forcePauseSecondaryQueues();
-        return "Secondary queues manually paused.";
+    @PostMapping("/processing/force-pause-all")
+    public String forcePauseAllSecondaryQueues() {
+        sequentialController.forcePauseAllSecondaryQueues();
+        return "All secondary queues manually paused.";
+    }
+
+    @PostMapping("/processing/force-resume-debit")
+    public String forceResumeDebitQueue() {
+        sequentialController.forceResumeDebitQueue();
+        return "Debit queue manually resumed for processing.";
     }
 
     @GetMapping("/processing/status")

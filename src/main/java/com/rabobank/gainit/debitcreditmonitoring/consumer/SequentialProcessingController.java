@@ -10,141 +10,227 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Elegant binding-based sequential processing controller.
- * Uses Spring Cloud Stream binding control instead of time-based heuristics.
+ * Ensures three-phase processing: Main -> Credit -> Debit queues.
  */
 @Service
 @Slf4j
 public class SequentialProcessingController {
 
     private final BindingsLifecycleController bindingsController;
+
+    // Phase tracking
     private final AtomicBoolean mainQueueActive = new AtomicBoolean(false);
+    private final AtomicBoolean creditQueueActive = new AtomicBoolean(false);
+    private final AtomicBoolean debitQueueActive = new AtomicBoolean(false);
+
+    // Timestamps for activity detection
     private final AtomicLong lastMainQueueMessage = new AtomicLong(0);
-    private final AtomicBoolean secondaryQueuesPaused = new AtomicBoolean(true);
+    private final AtomicLong lastCreditQueueMessage = new AtomicLong(0);
 
     // Binding names from application.yml
     private static final String MONITOR_CREDIT_BINDING = "monitorCredit-in-0";
     private static final String MONITOR_DEBIT_BINDING = "monitorDebit-in-0";
 
+    // Phase constants
+    private static final long INACTIVITY_THRESHOLD_MS = 3000; // 3 seconds
+
     public SequentialProcessingController(BindingsLifecycleController bindingsController) {
         this.bindingsController = bindingsController;
-        // Start with secondary queues paused
-        pauseSecondaryQueues();
+        // Start with all secondary queues paused
+        pauseAllSecondaryQueues();
     }
 
     /**
      * Called when a message is received from the main queue.
-     * Immediately pauses secondary queues if they were active.
+     * Immediately pauses all secondary queues.
      */
     public void onMainQueueMessage() {
         mainQueueActive.set(true);
         lastMainQueueMessage.set(System.currentTimeMillis());
 
-        if (!secondaryQueuesPaused.get()) {
-            log.info("Main queue message received - pausing secondary queues");
-            pauseSecondaryQueues();
+        if (areAnySecondaryQueuesActive()) {
+            log.info("Main queue message received - pausing all secondary queues");
+            pauseAllSecondaryQueues();
         }
     }
 
     /**
-     * Called when main queue processing is complete.
-     * Enables secondary queue processing.
+     * Called when a message is received from the credit queue.
+     * Pauses debit queue if it's active.
      */
-    public void onMainQueueDrained() {
-        mainQueueActive.set(false);
-        log.info("Main queue drained - enabling secondary queue processing");
-        resumeSecondaryQueues();
-    }
+    public void onCreditQueueMessage() {
+        if (!mainQueueActive.get()) { // Only track if main queue is drained
+            creditQueueActive.set(true);
+            lastCreditQueueMessage.set(System.currentTimeMillis());
 
-    /**
-     * Periodic check to determine if main queue is drained.
-     * Uses a more sophisticated approach than simple time-based heuristic.
-     */
-    @Scheduled(fixedDelay = 2000) // Check every 2 seconds
-    public void checkMainQueueStatus() {
-        if (!mainQueueActive.get()) {
-            long timeSinceLastMessage = System.currentTimeMillis() - lastMainQueueMessage.get();
-
-            // If no main queue activity for 3 seconds, consider it drained
-            if (timeSinceLastMessage > 3000 && secondaryQueuesPaused.get()) {
-                log.info("Main queue appears inactive for {}ms - enabling secondary processing", timeSinceLastMessage);
-                onMainQueueDrained();
+            if (debitQueueActive.get()) {
+                log.info("Credit queue message received - pausing debit queue");
+                pauseDebitQueue();
             }
         }
     }
 
     /**
-     * Pause secondary queue consumers.
+     * Called when a message is received from the debit queue.
+     * No action needed as debit is the final phase.
      */
-    private void pauseSecondaryQueues() {
+    public void onDebitQueueMessage() {
+        if (!mainQueueActive.get() && !creditQueueActive.get()) { // Only track if both previous are drained
+            debitQueueActive.set(true);
+        }
+    }
+
+    /**
+     * Periodic check to determine processing phases.
+     * Manages the three-phase state machine.
+     */
+    @Scheduled(fixedDelay = 2000) // Check every 2 seconds
+    public void checkProcessingPhases() {
+        long currentTime = System.currentTimeMillis();
+
+        // Phase 1: Check if main queue is drained
+        if (mainQueueActive.get()) {
+            long timeSinceLastMainMessage = currentTime - lastMainQueueMessage.get();
+            if (timeSinceLastMainMessage > INACTIVITY_THRESHOLD_MS) {
+                mainQueueActive.set(false);
+                log.info("Phase 1 complete: Main queue drained after {}ms. Starting Phase 2: Credit processing", timeSinceLastMainMessage);
+                resumeCreditQueue();
+            }
+        }
+        // Phase 2: Check if credit queue is drained (only if main is drained)
+        else if (creditQueueActive.get()) {
+            long timeSinceLastCreditMessage = currentTime - lastCreditQueueMessage.get();
+            if (timeSinceLastCreditMessage > INACTIVITY_THRESHOLD_MS) {
+                creditQueueActive.set(false);
+                log.info("Phase 2 complete: Credit queue drained after {}ms. Starting Phase 3: Debit processing", timeSinceLastCreditMessage);
+                resumeDebitQueue();
+            }
+        }
+        // Phase 3: Debit processing is active when both main and credit are drained
+        else if (!debitQueueActive.get()) {
+            log.info("Phase 3 active: All queues drained. Debit processing enabled.");
+            resumeDebitQueue();
+        }
+    }
+
+    /**
+     * Pause all secondary queues (credit and debit).
+     */
+    private void pauseAllSecondaryQueues() {
+        pauseCreditQueue();
+        pauseDebitQueue();
+    }
+
+    /**
+     * Pause only the credit queue.
+     */
+    private void pauseCreditQueue() {
         try {
             bindingsController.changeState(MONITOR_CREDIT_BINDING, BindingsLifecycleController.State.PAUSED);
-            bindingsController.changeState(MONITOR_DEBIT_BINDING, BindingsLifecycleController.State.PAUSED);
-            secondaryQueuesPaused.set(true);
-            log.info("Secondary queues paused: credit={}, debit={}",
-                    MONITOR_CREDIT_BINDING, MONITOR_DEBIT_BINDING);
+            log.debug("Credit queue paused: {}", MONITOR_CREDIT_BINDING);
         } catch (Exception e) {
-            log.error("Failed to pause secondary queues", e);
+            log.error("Failed to pause credit queue", e);
         }
     }
 
     /**
-     * Resume secondary queue consumers.
+     * Pause only the debit queue.
      */
-    private void resumeSecondaryQueues() {
+    private void pauseDebitQueue() {
+        try {
+            bindingsController.changeState(MONITOR_DEBIT_BINDING, BindingsLifecycleController.State.PAUSED);
+            debitQueueActive.set(false);
+            log.debug("Debit queue paused: {}", MONITOR_DEBIT_BINDING);
+        } catch (Exception e) {
+            log.error("Failed to pause debit queue", e);
+        }
+    }
+
+    /**
+     * Resume the credit queue.
+     */
+    private void resumeCreditQueue() {
         try {
             bindingsController.changeState(MONITOR_CREDIT_BINDING, BindingsLifecycleController.State.RESUMED);
-            bindingsController.changeState(MONITOR_DEBIT_BINDING, BindingsLifecycleController.State.RESUMED);
-            secondaryQueuesPaused.set(false);
-            log.info("Secondary queues resumed: credit={}, debit={}",
-                    MONITOR_CREDIT_BINDING, MONITOR_DEBIT_BINDING);
+            creditQueueActive.set(true);
+            log.info("Credit queue resumed: {}", MONITOR_CREDIT_BINDING);
         } catch (Exception e) {
-            log.error("Failed to resume secondary queues", e);
+            log.error("Failed to resume credit queue", e);
         }
     }
 
     /**
-     * Check if secondary queues are currently active.
+     * Resume the debit queue.
      */
-    public boolean areSecondaryQueuesActive() {
-        return !secondaryQueuesPaused.get();
+    private void resumeDebitQueue() {
+        try {
+            bindingsController.changeState(MONITOR_DEBIT_BINDING, BindingsLifecycleController.State.RESUMED);
+            debitQueueActive.set(true);
+            log.info("Debit queue resumed: {}", MONITOR_DEBIT_BINDING);
+        } catch (Exception e) {
+            log.error("Failed to resume debit queue", e);
+        }
     }
 
     /**
-     * Force resume secondary queues (for manual control).
+     * Check if any secondary queues are currently active.
      */
-    public void forceResumeSecondaryQueues() {
-        log.warn("Manually forcing resume of secondary queues");
-        onMainQueueDrained();
+    private boolean areAnySecondaryQueuesActive() {
+        return creditQueueActive.get() || debitQueueActive.get();
     }
 
     /**
-     * Force pause secondary queues (for manual control).
+     * Force resume all secondary queues (for manual control).
      */
-    public void forcePauseSecondaryQueues() {
-        log.warn("Manually forcing pause of secondary queues");
-        pauseSecondaryQueues();
+    public void forceResumeAllSecondaryQueues() {
+        log.warn("Manually forcing resume of all secondary queues");
+        resumeCreditQueue();
+        resumeDebitQueue();
     }
 
     /**
-     * Get current status for monitoring.
+     * Force pause all secondary queues (for manual control).
+     */
+    public void forcePauseAllSecondaryQueues() {
+        log.warn("Manually forcing pause of all secondary queues");
+        pauseAllSecondaryQueues();
+    }
+
+    /**
+     * Force resume only debit queue (for testing).
+     */
+    public void forceResumeDebitQueue() {
+        log.warn("Manually forcing resume of debit queue");
+        resumeDebitQueue();
+    }
+
+    /**
+     * Get current processing status.
      */
     public ProcessingStatus getStatus() {
         return new ProcessingStatus(
             mainQueueActive.get(),
-            !secondaryQueuesPaused.get(),
-            System.currentTimeMillis() - lastMainQueueMessage.get()
+            creditQueueActive.get(),
+            debitQueueActive.get(),
+            System.currentTimeMillis() - lastMainQueueMessage.get(),
+            System.currentTimeMillis() - lastCreditQueueMessage.get()
         );
     }
 
     public static class ProcessingStatus {
         public final boolean mainQueueActive;
-        public final boolean secondaryQueuesActive;
+        public final boolean creditQueueActive;
+        public final boolean debitQueueActive;
         public final long timeSinceLastMainMessage;
+        public final long timeSinceLastCreditMessage;
 
-        public ProcessingStatus(boolean mainQueueActive, boolean secondaryQueuesActive, long timeSinceLastMainMessage) {
+        public ProcessingStatus(boolean mainQueueActive, boolean creditQueueActive, boolean debitQueueActive,
+                              long timeSinceLastMainMessage, long timeSinceLastCreditMessage) {
             this.mainQueueActive = mainQueueActive;
-            this.secondaryQueuesActive = secondaryQueuesActive;
+            this.creditQueueActive = creditQueueActive;
+            this.debitQueueActive = debitQueueActive;
             this.timeSinceLastMainMessage = timeSinceLastMainMessage;
+            this.timeSinceLastCreditMessage = timeSinceLastCreditMessage;
         }
     }
 }
