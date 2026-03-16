@@ -2,6 +2,8 @@ com\rabobank\gainit\debitcreditmonitoring\consumer\SequentialProcessingService.c
 com\rabobank\gainit\debitcreditmonitoring\controller\EventController.class
 com\rabobank\gainit\debitcreditmonitoring\producer\EventHubProducer.class
 com\rabobank\gainit\debitcreditmonitoring\consumer\MonitoringEventProcessor.class
+com\rabobank\gainit\debitcreditmonitoring\consumer\SequentialProcessingController$ProcessingStatus.class
+com\rabobank\gainit\debitcreditmonitoring\consumer\SequentialProcessingController.class
 com\rabobank\gainit\debitcreditmonitoring\consumer\DebitEventHandler.class
 com\rabobank\gainit\debitcreditmonitoring\consumer\DebitEventProcessor.class
 com\rabobank\gainit\debitcreditmonitoring\consumer\EventMonitoringConfig.class

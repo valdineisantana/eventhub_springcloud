@@ -8,17 +8,17 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class MonitoringEventHandler {
 
-    private final SequentialProcessingService sequentialProcessingService;
+    private final SequentialProcessingController sequentialController;
 
-    public MonitoringEventHandler(SequentialProcessingService sequentialProcessingService) {
-        this.sequentialProcessingService = sequentialProcessingService;
+    public MonitoringEventHandler(SequentialProcessingController sequentialController) {
+        this.sequentialController = sequentialController;
     }
 
     public void process(String payload, Checkpointer checkpointer) {
         log.info("Processing monitoring event from debit-credit-monitoring: {}", payload);
 
-        // Notify that main queue has activity
-        sequentialProcessingService.onMainQueueMessage();
+        // Notify that main queue has activity - this will pause secondary queues
+        sequentialController.onMainQueueMessage();
 
         // Add business logic here, e.g., parse payload, validate, send alerts, etc.
 

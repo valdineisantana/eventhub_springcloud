@@ -3,6 +3,7 @@ C:\Users\vitor\Documents\GitHub\eventhub_springcloud\src\main\java\com\rabobank\
 C:\Users\vitor\Documents\GitHub\eventhub_springcloud\src\main\java\com\rabobank\gainit\debitcreditmonitoring\consumer\SequentialProcessingService.java
 C:\Users\vitor\Documents\GitHub\eventhub_springcloud\src\main\java\com\rabobank\gainit\debitcreditmonitoring\consumer\CreditEventProcessor.java
 C:\Users\vitor\Documents\GitHub\eventhub_springcloud\src\main\java\com\rabobank\gainit\debitcreditmonitoring\consumer\MonitoringEventHandler.java
+C:\Users\vitor\Documents\GitHub\eventhub_springcloud\src\main\java\com\rabobank\gainit\debitcreditmonitoring\consumer\SequentialProcessingController.java
 C:\Users\vitor\Documents\GitHub\eventhub_springcloud\src\main\java\com\rabobank\gainit\debitcreditmonitoring\DebitCreditMonitoringApplication.java
 C:\Users\vitor\Documents\GitHub\eventhub_springcloud\src\main\java\com\rabobank\gainit\debitcreditmonitoring\producer\EventHubProducer.java
 C:\Users\vitor\Documents\GitHub\eventhub_springcloud\src\main\java\com\rabobank\gainit\debitcreditmonitoring\consumer\CreditEventHandler.java
