@@ -1,0 +1,26 @@
+spring:
+  cloud:
+    azure:
+      eventhubs:
+        processor:
+          checkpoint-store:
+            account-name: sadevbrgainitcadebcre # Storage Account
+            account-key:
+        connection-string:
+    stream:
+      function:
+        definition: monitorEvents
+      bindings:
+        monitorEvents-in-0:
+          destination: debit-credit-events
+          group: monitoring-group
+      eventhubs:
+        bindings:
+          monitorEvents-in-0:
+            consumer:
+              checkpoint-store:
+                container-name: checkpoints
+
+logging:
+  level:
+    com.rabobank.gainit: DEBUG

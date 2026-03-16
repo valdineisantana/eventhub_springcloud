@@ -1,0 +1,3 @@
+com\rabobank\gainit\debitcreditmonitoring\DebitCreditMonitoringApplication.class
+com\rabobank\gainit\debitcreditmonitoring\EventMonitoringConfig.class
+com\rabobank\gainit\debitcreditmonitoring\EventController.class
