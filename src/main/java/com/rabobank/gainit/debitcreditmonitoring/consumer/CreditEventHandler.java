@@ -15,23 +15,26 @@ public class CreditEventHandler {
     }
 
     public void process(String payload, Checkpointer checkpointer) {
-        // Check if main queue is drained before processing credit events
-        if (!sequentialProcessingService.canProcessSecondaryQueues()) {
-            log.warn("Skipping credit process event - main queue (debit-credit-events) not yet drained: {}", payload);
-            return;
-        }
+        log.info("Received credit process event: {}", payload);
 
-        log.info("Processing credit process event: {}", payload);
-        // Add business logic here, e.g., parse payload, validate credit rules, etc.
-
+        // Always checkpoint the message to avoid losing it
         if (checkpointer != null) {
-            log.info("Starting manual checkpoint for credit event: {}", payload);
             checkpointer.success()
-                    .doOnSuccess(success -> log.info("Credit event '{}' successfully checkpointed", payload))
+                    .doOnSuccess(success -> log.info("Credit event checkpointed: {}", payload))
                     .doOnError(error -> log.error("Error checkpointing credit event", error))
                     .block();
         } else {
             log.warn("Checkpointer not found for credit event: {}", payload);
         }
+
+        // Check if main queue is drained before processing business logic
+        if (!sequentialProcessingService.canProcessSecondaryQueues()) {
+            log.warn("Main queue (debit-credit-events) not yet drained. Credit event '{}' received but business logic deferred.", payload);
+            return;
+        }
+
+        // Business logic here - only executed when main queue is drained
+        log.info("Processing credit process event business logic: {}", payload);
+        // Add business logic here, e.g., parse payload, validate credit rules, etc.
     }
 }

@@ -15,23 +15,26 @@ public class DebitEventHandler {
     }
 
     public void process(String payload, Checkpointer checkpointer) {
-        // Check if main queue is drained before processing debit events
-        if (!sequentialProcessingService.canProcessSecondaryQueues()) {
-            log.warn("Skipping debit process event - main queue (debit-credit-events) not yet drained: {}", payload);
-            return;
-        }
+        log.info("Received debit process event: {}", payload);
 
-        log.info("Processing debit process event: {}", payload);
-        // Add business logic here, e.g., parse payload, validate debit rules, etc.
-
+        // Always checkpoint the message to avoid losing it
         if (checkpointer != null) {
-            log.info("Starting manual checkpoint for debit event: {}", payload);
             checkpointer.success()
-                    .doOnSuccess(success -> log.info("Debit event '{}' successfully checkpointed", payload))
+                    .doOnSuccess(success -> log.info("Debit event checkpointed: {}", payload))
                     .doOnError(error -> log.error("Error checkpointing debit event", error))
                     .block();
         } else {
             log.warn("Checkpointer not found for debit event: {}", payload);
         }
+
+        // Check if main queue is drained before processing business logic
+        if (!sequentialProcessingService.canProcessSecondaryQueues()) {
+            log.warn("Main queue (debit-credit-events) not yet drained. Debit event '{}' received but business logic deferred.", payload);
+            return;
+        }
+
+        // Business logic here - only executed when main queue is drained
+        log.info("Processing debit process event business logic: {}", payload);
+        // Add business logic here, e.g., parse payload, validate debit rules, etc.
     }
 }
