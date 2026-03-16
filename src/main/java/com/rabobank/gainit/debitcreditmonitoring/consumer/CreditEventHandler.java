@@ -8,7 +8,19 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CreditEventHandler {
 
+    private final SequentialProcessingService sequentialProcessingService;
+
+    public CreditEventHandler(SequentialProcessingService sequentialProcessingService) {
+        this.sequentialProcessingService = sequentialProcessingService;
+    }
+
     public void process(String payload, Checkpointer checkpointer) {
+        // Check if main queue is drained before processing credit events
+        if (!sequentialProcessingService.canProcessSecondaryQueues()) {
+            log.warn("Skipping credit process event - main queue (debit-credit-events) not yet drained: {}", payload);
+            return;
+        }
+
         log.info("Processing credit process event: {}", payload);
         // Add business logic here, e.g., parse payload, validate credit rules, etc.
 

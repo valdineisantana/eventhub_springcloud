@@ -1,10 +1,14 @@
+com\rabobank\gainit\debitcreditmonitoring\consumer\SequentialProcessingService.class
 com\rabobank\gainit\debitcreditmonitoring\controller\EventController.class
-com\rabobank\gainit\debitcreditmonitoring\consumer\DebitEventHandler.class
 com\rabobank\gainit\debitcreditmonitoring\producer\EventHubProducer.class
+com\rabobank\gainit\debitcreditmonitoring\consumer\MonitoringEventProcessor.class
+com\rabobank\gainit\debitcreditmonitoring\consumer\DebitEventHandler.class
+com\rabobank\gainit\debitcreditmonitoring\consumer\DebitEventProcessor.class
 com\rabobank\gainit\debitcreditmonitoring\consumer\EventMonitoringConfig.class
 com\rabobank\gainit\debitcreditmonitoring\producer\DebitEventProducer.class
 com\rabobank\gainit\debitcreditmonitoring\consumer\CreditEventHandler.class
 com\rabobank\gainit\debitcreditmonitoring\consumer\MonitoringEventHandler.class
 com\rabobank\gainit\debitcreditmonitoring\producer\CreditEventProducer.class
+com\rabobank\gainit\debitcreditmonitoring\consumer\CreditEventProcessor.class
 com\rabobank\gainit\debitcreditmonitoring\DebitCreditMonitoringApplication.class
 com\rabobank\gainit\debitcreditmonitoring\config\EventHubProducerConfig.class

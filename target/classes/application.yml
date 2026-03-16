@@ -29,18 +29,21 @@ spring:
                 mode: MANUAL
               checkpoint-store:
                 container-name: checkpoints
+              concurrency: 1
           monitorCredit-in-0:
             consumer:
               checkpoint:
                 mode: MANUAL
               checkpoint-store:
                 container-name: checkpoints
+              concurrency: 1
           monitorDebit-in-0:
             consumer:
               checkpoint:
                 mode: MANUAL
               checkpoint-store:
                 container-name: checkpoints
+              concurrency: 1
 
 logging:
   level:
