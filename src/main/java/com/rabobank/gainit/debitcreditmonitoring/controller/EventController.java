@@ -1,5 +1,6 @@
-package com.rabobank.gainit.debitcreditmonitoring;
+package com.rabobank.gainit.debitcreditmonitoring.controller;
 
+import com.rabobank.gainit.debitcreditmonitoring.producer.EventHubProducer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.web.bind.annotation.PostMapping;

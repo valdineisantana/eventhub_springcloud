@@ -1,4 +1,4 @@
-package com.rabobank.gainit.debitcreditmonitoring;
+package com.rabobank.gainit.debitcreditmonitoring.consumer;
 
 import com.azure.spring.messaging.AzureHeaders;
 import com.azure.spring.messaging.checkpoint.Checkpointer;

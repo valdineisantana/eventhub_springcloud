@@ -1,4 +1,4 @@
-package com.rabobank.gainit.debitcreditmonitoring;
+package com.rabobank.gainit.debitcreditmonitoring.producer;
 
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventDataBatch;
